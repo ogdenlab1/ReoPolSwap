@@ -1,0 +1,77 @@
+
+library(dplyr)
+library(Biostrings)
+
+
+##Load in data, save quantification of rows as variable, and slice start and stop sequences
+
+
+dat1 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\BED files into text files\\T1l_WT1_ViReMa_ed0.31_Virus_Recombination_Results.txt", sep = "\t", header = FALSE, skip = 1)
+dat2 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\BED files into text files\\T1l_WT2_ViReMa_ed0.31_Virus_Recombination_Results.txt", sep = "\t", header = FALSE, skip = 1)
+dat3 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\BED files into text files\\T1l_WT3_ViReMa_ed0.31_Virus_Recombination_Results.txt", sep = "\t", header = FALSE, skip = 1)
+
+
+dat1 <- dat1[,c(1,2,3,6,9,10)]
+dat2 <- dat2[,c(1,2,3,6,9,10)]
+dat3 <- dat3[,c(1,2,3,6,9,10)]
+
+#Individual gene segments were analyzed separately 
+dat1 <- dat1[dat1$V1 == 'L1T1L',]
+dat2 <- dat2[dat2$V1 == 'L1T1L',]
+dat3 <- dat3[dat3$V1 == 'L1T1L',]
+
+#Data was combined for all replicates for each virus, and only unique junctions were maintained 
+dat <- rbind(dat1, dat2, dat3)
+dat <- unique(dat)
+
+n = nrow(dat)
+dat_start <- select(dat, V9)
+dat_stop <- select(dat, V10)
+
+#eliminate elements shorter than 51 elements in both START/STOP
+look.for <- 1:50
+dat_stop$noChar <- nchar(dat_stop$V10)
+dat_start$noChar <- nchar(dat_start$V9)
+rows_delete <- dat_stop[dat_stop$noChar %in% look.for, ]
+
+rows_to_delete <- (rownames(rows_delete))
+dat_stop <- dat_stop[!(row.names(dat_stop) %in% rows_to_delete),]
+dat_start <- dat_start[!(row.names(dat_start) %in% rows_to_delete),]
+
+dat_stop <- select(dat_stop, V10 )
+dat_start <- select(dat_start, V9)
+##delete column without changing format
+
+##generate matrix of sequences (Start sequences)
+new <- matrix(nrow = n, ncol = 51)
+for(i in 1:51){
+  for(j in 1:n){
+    new [j,i] <- substring(dat_start[j,], i, i)
+  }
+}
+
+new= new[,-26]
+
+##generate matrix of sequences (Stop sequences)
+new_stop <- matrix(nrow = n, ncol = 51)
+for(x in 1:51){
+  for(y in 1:n){
+    new_stop [y,x] <- substring(dat_stop[y,], x, x)
+  }
+}
+
+new_stop=new_stop[, -26]
+
+#Nucleotides surrounding the start and stop of the junctions were compared to identify identical nucleotides
+comparison_df = ifelse(new==new_stop, TRUE, FALSE)
+comparison_df
+
+#Identical nucleotides between the start and the stop of the junction were quantified and the position was labelled.
+count = colSums(comparison_df == TRUE, na.rm = TRUE)
+position <- c(1:50)
+
+df <- data.frame(count, position)
+
+write.table(df, file = "R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\Microhomology_position_corrected_T1L_WT_L1_all.txt", sep = "\t", row.names = FALSE)
+
+#Values can be used to generate the plot in GraphPad Prism
