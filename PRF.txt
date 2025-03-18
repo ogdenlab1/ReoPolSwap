@@ -1,0 +1,24 @@
+library(dplyr)
+
+#Viral sample replicates were analyzed individually and per segment. 
+data1 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\BED files into text files\\T3D_Swap1_ViReMa_Mar240.31_Virus_Recombination_Results.txt", sep = "\t", header = FALSE, skip = 1)
+data1 <- data1[,c(1,2,5)]
+data1 <- data1 %>% rename(Genome = V1, Position = V2, Depth = V5)
+data1 <- data1[data1$Genome == 'AF461682.1',]
+
+
+data_coverage1 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\BED files into text files\\T3D_Swap1_Ed_M1_ViReMa.coverage.txt", sep="", header = FALSE, skip = 1)
+data_coverage1 <- data_coverage1 %>% rename(Genome = V1, Position = V2, Coverage = V3)
+data_coverage1 <- data_coverage1[data_coverage1$Genome == 'AF461682.1',]
+
+
+data_agg1 <- data1 %>% group_by(Position) %>% summarise(Depth = sum(Depth))
+data_agg1 <- data_agg1[order(data_agg1$Position), ]
+data_PRF1 <- right_join(data_agg1, data_coverage1, by = "Position")
+data_PRF1[is.na(data_PRF1)] <- 0
+data_PRF1$Total = data_PRF1$Depth + data_PRF1$Coverage
+data_PRF1$Frequency = data_PRF1$Depth / data_PRF1$Total
+data_PRF1 <- data_PRF1[c(3,1,2,4,5,6)]
+
+
+write.table(data_PRF1, file = "R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T3D_Swap1_PRF_M1_ed.txt", sep = "\t", row.names = FALSE)

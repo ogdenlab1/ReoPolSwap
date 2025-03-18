@@ -1,0 +1,83 @@
+
+library("dplyr")
+library(ggvenn)
+library(data.table)
+
+#Import data for each virus
+
+df1 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T1L_WT1_junction.txt", sep = "\t", header= TRUE)
+df2 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T1L_WT2_junction.txt", sep = "\t", header= TRUE)
+df3 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T1L_WT3_junction.txt", sep = "\t", header= TRUE)
+df4 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T1L_Swap1_Ed_L1M1_junction.txt", sep = "\t", header= TRUE)
+df5 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T1L_Swap2_Ed_L1M1_junction.txt", sep = "\t", header= TRUE)
+df6 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T1L_Swap3_Ed_L1M1_junction.txt", sep = "\t", header= TRUE)
+df7 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T3D_WT1_junction.txt", sep = "\t", header= TRUE)
+df8 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T3D_WT2_junction.txt", sep = "\t", header= TRUE)
+df9 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T3D_WT3_junction.txt", sep = "\t", header= TRUE)
+df10 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T3D_Swap1_Ed_M1_junction.txt", sep = "\t", header= TRUE)
+df11 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T3D_Swap2_Ed_M1_junction.txt", sep = "\t", header= TRUE)
+df12 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T3D_Swap3_Ed_M1_junction.txt", sep = "\t", header= TRUE)
+
+#A unique ID is created for each individual juntion
+df1<- df1 %>% mutate(key = paste0(Start, Stop, "_"))
+df2<- df2 %>% mutate(key = paste0(Start, Stop, "_"))
+df3<- df3 %>% mutate(key = paste0(Start, Stop, "_"))
+df4<- df4 %>% mutate(key = paste0(Start, Stop, "_"))
+df5<- df5 %>% mutate(key = paste0(Start, Stop, "_"))
+df6<- df6 %>% mutate(key = paste0(Start, Stop, "_"))
+df7<- df7 %>% mutate(key = paste0(Start, Stop, "_"))
+df8<- df8 %>% mutate(key = paste0(Start, Stop, "_"))
+df9<- df9 %>% mutate(key = paste0(Start, Stop, "_"))
+df10<- df10 %>% mutate(key = paste0(Start, Stop, "_"))
+df11<- df11 %>% mutate(key = paste0(Start, Stop, "_"))
+df12<- df12 %>% mutate(key = paste0(Start, Stop, "_"))
+
+#Junctions were grouped by virus and their replicates
+ID_recombination_T1L <- rbind(df1, df2, df3)
+ID_recombination_T1L <- subset(ID_recombination_T1L, select = c(Genome, key))
+ID_recombination_T1L <- setkey(ID_recombination_T1L, NULL)
+ID_recombination_T1L <- unique(ID_recombination_T1L)
+
+ID_recombination_T1L_swap <- rbind(df4, df5, df6)
+ID_recombination_T1L_swap <- subset(ID_recombination_T1L_swap, select = c(Genome, key))
+ID_recombination_T1L_swap <- setkey(ID_recombination_T1L_swap, NULL)
+ID_recombination_T1L_swap <- unique(ID_recombination_T1L_swap)
+
+ID_recombination_T3D <- rbind(df7, df8, df9)
+ID_recombination_T3D <- subset(ID_recombination_T3D, select = c(Genome, key))
+ID_recombination_T3D <- setkey(ID_recombination_T3D, NULL)
+ID_recombination_T3D <- unique(ID_recombination_T3D)
+
+ID_recombination_T3D_swap <- rbind(df10, df11, df12)
+ID_recombination_T3D_swap <- subset(ID_recombination_T3D_swap, select = c(Genome, key))
+ID_recombination_T3D_swap <- setkey(ID_recombination_T3D_swap, NULL)
+ID_recombination_T3D_swap <- unique(ID_recombination_T3D_swap)
+
+#Analysis for each individual segment was performed. Thus, values are extracted based on the segment to be analyzed 
+
+L1_ID_recombination_T1L <- ID_recombination_T1L[ID_recombination_T1L$Genome == 'L1T1L',]
+L1_ID_recombination_T1L <- L1_ID_recombination_T1L[['key']]
+
+L1_ID_recombination_T3D_swap <- ID_recombination_T3D_swap[ID_recombination_T3D_swap$Genome == 'L1T1L',]
+L1_ID_recombination_T3D_swap <- L1_ID_recombination_T3D_swap[['key']]
+
+L1_ID_recombination_T3D <- ID_recombination_T3D[ID_recombination_T3D$Genome == 'EF494435.1',]
+L1_ID_recombination_T3D <- L1_ID_recombination_T3D[['key']]
+
+L1_ID_recombination_T1L_swap <- ID_recombination_T1L_swap[ID_recombination_T1L_swap$Genome == 'EF494435.1',]
+L1_ID_recombination_T1L_swap <- L1_ID_recombination_T1L_swap[['key']]
+
+#Final data is grouped together in the appropriate format to generate a Venn Diagram
+L1_junctions <- list(
+  T3D = L1_ID_recombination_T3D, 
+  T3D_T1L1M1 = L1_ID_recombination_T3D_swap, 
+  T1L_T3L1M1 = L1_ID_recombination_T1L_swap,
+  T1L = L1_ID_recombination_T1L
+  )
+
+ggvenn(
+  L1_junctions, 
+  fill_color = c("#0000FF", "#55A0FB", "#F71480", "#FF0000"),
+  stroke_size = 0.5, set_name_size = 4
+  )
+#Venn Diagram values were used in a table format.

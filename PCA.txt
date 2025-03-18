@@ -1,0 +1,74 @@
+library("dplyr")
+
+#Import all data files
+df1 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T1L_WT1_junction_corrected.txt", sep = "\t", header= TRUE)
+df2 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T1L_WT2_junction_corrected.txt", sep = "\t", header= TRUE)
+df3 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T1L_WT3_junction_corrected.txt", sep = "\t", header= TRUE)
+df4 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T1L_Swap1_junction_corrected.txt", sep = "\t", header= TRUE)
+df5 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T1L_Swap2_junction_corrected.txt", sep = "\t", header= TRUE)
+df6 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T1L_Swap3_junction_corrected.txt", sep = "\t", header= TRUE)
+df7 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T3D_WT1_junction_corrected.txt", sep = "\t", header= TRUE)
+df8 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T3D_WT2_junction_corrected.txt", sep = "\t", header= TRUE)
+df9 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T3D_WT3_junction_corrected.txt", sep = "\t", header= TRUE)
+df10 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T3D_Swap1_junction_corrected.txt", sep = "\t", header= TRUE)
+df11 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T3D_Swap2_junction_corrected.txt", sep = "\t", header= TRUE)
+df12 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T3D_Swap3_junction_corrected.txt", sep = "\t", header= TRUE)
+
+#Generate and ID for each recombination junction
+
+df1<- df1 %>% mutate(key = paste0(Start, Stop, "_"))
+df2<- df2 %>% mutate(key = paste0(Start, Stop, "_"))
+df3<- df3 %>% mutate(key = paste0(Start, Stop, "_"))
+df4<- df4 %>% mutate(key = paste0(Start, Stop, "_"))
+df5<- df5 %>% mutate(key = paste0(Start, Stop, "_"))
+df6<- df6 %>% mutate(key = paste0(Start, Stop, "_"))
+df7<- df7 %>% mutate(key = paste0(Start, Stop, "_"))
+df8<- df8 %>% mutate(key = paste0(Start, Stop, "_"))
+df9<- df9 %>% mutate(key = paste0(Start, Stop, "_"))
+df10<- df10 %>% mutate(key = paste0(Start, Stop, "_"))
+df11<- df11 %>% mutate(key = paste0(Start, Stop, "_"))
+df12<- df12 %>% mutate(key = paste0(Start, Stop, "_"))
+
+# Get all IDs into a single file and only retain unique junctions
+
+ID_recombination <- rbind(df1, df2, df3, df4, df5, df6, df7, df8, df9, df10, df11, df12)
+ID_recombination <- subset(ID_recombination, select = -Total )
+ID_recombination <- subset(ID_recombination, select = -Depth )
+ID_recombination <- subset(ID_recombination, select = -logFreq )
+ID_recombination <- subset(ID_recombination, select = -Frequency )
+ID_recombination <- unique(ID_recombination)
+
+#Select individual segments to be analyzed 
+ID_recombination1 <- ID_recombination[ID_recombination$Genome == 'L1T1L',]
+ID_recombination2 <- ID_recombination[ID_recombination$Genome == 'EF494435.1',]
+
+ID_recombination_L1 <- rbind(ID_recombination1, ID_recombination2)
+ID_recombination_L1 <- subset(ID_recombination_L1, select = -Genome )
+ID_recombination_L1 <- ID_recombination_L1[order(ID_recombination_L1$Start), ]
+ID_recombination_L1 <- subset(ID_recombination_L1, select = -Start )
+ID_recombination_L1 <- subset(ID_recombination_L1, select = -Stop )
+ID_recombination_L1 <- unique(ID_recombination_L1)
+
+PCA_segment <- ID_recombination_L1
+#Recombinations IDs are searched among all viral samples, and if the recombination junction was identified in the virus, the frequency value is extracted and appended to its corresponding junction.
+
+PCA_segment <- merge(x = PCA_segment, y = df1[ , c("key", "Frequency")], by = "key", all.x=TRUE)
+PCA_segment <- merge(x = PCA_segment, y = df2[ , c("key", "Frequency")], by = "key", all.x=TRUE)
+PCA_segment <- merge(x = PCA_segment, y = df3[ , c("key", "Frequency")], by = "key", all.x=TRUE)
+PCA_segment <- merge(x = PCA_segment, y = df4[ , c("key", "Frequency")], by = "key", all.x=TRUE)
+PCA_segment <- merge(x = PCA_segment, y = df5[ , c("key", "Frequency")], by = "key", all.x=TRUE)
+PCA_segment <- merge(x = PCA_segment, y = df6[ , c("key", "Frequency")], by = "key", all.x=TRUE)
+PCA_segment <- merge(x = PCA_segment, y = df7[ , c("key", "Frequency")], by = "key", all.x=TRUE)
+PCA_segment <- merge(x = PCA_segment, y = df8[ , c("key", "Frequency")], by = "key", all.x=TRUE)
+PCA_segment <- merge(x = PCA_segment, y = df9[ , c("key", "Frequency")], by = "key", all.x=TRUE)
+PCA_segment <- merge(x = PCA_segment, y = df10[ , c("key", "Frequency")], by = "key", all.x=TRUE)
+PCA_segment <- merge(x = PCA_segment, y = df11[ , c("key", "Frequency")], by = "key", all.x=TRUE)
+PCA_segment <- merge(x = PCA_segment, y = df12[ , c("key", "Frequency")], by = "key", all.x=TRUE)
+
+#colnames are named after the viral sample name
+colnames(PCA_segment) <- c('key','T1L-WT-1', 'T1L-WT-2', 'T1L-WT-3', 'T1L-T3L1M1-1', 'T1L-T3L1M1-2', 'T1L-T3L1M1-3', 'T3D-WT-1', 'T3D-WT-2', 'T3D-WT-3', 'T3D-T1L1M1-1', 'T3D-T1L1M1-2', 'T3D-T1L1M1-3')
+
+#substitute NA values with zero to run PCA segment
+PCA_segment[is.na(PCA_segment)] = 0
+
+#Generated data can be used as an input for PCA analysis in GraphPad Prism
