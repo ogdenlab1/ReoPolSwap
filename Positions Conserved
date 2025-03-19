@@ -1,0 +1,206 @@
+library(dplyr)
+library(Biostrings)
+
+
+##Load in data, save quantification of rows as variable, and slice start and stop sequences
+
+dat1 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\BED files into text files\\T1l_WT1_ViReMa_ed0.31_Virus_Recombination_Results.txt", sep = "\t", header = FALSE, skip = 1)
+dat2 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\BED files into text files\\T1l_WT2_ViReMa_ed0.31_Virus_Recombination_Results.txt", sep = "\t", header = FALSE, skip = 1)
+dat3 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\BED files into text files\\T1l_WT3_ViReMa_ed0.31_Virus_Recombination_Results.txt", sep = "\t", header = FALSE, skip = 1)
+
+dat1 <- dat1[,c(1,2,3,6,9,10)]
+dat2 <- dat2[,c(1,2,3,6,9,10)]
+dat3 <- dat3[,c(1,2,3,6,9,10)]
+
+#Individual gene segments were analyzed separately 
+dat1 <- dat1[dat1$V1 == 'L1T1L',]
+dat2 <- dat2[dat2$V1 == 'L1T1L',]
+dat3 <- dat3[dat3$V1 == 'L1T1L',]
+
+#Data was combined for all replicates for each virus, and only unique junctions were maintained 
+dat <- rbind(dat1, dat2, dat3)
+dat <- unique(dat)
+dat <-  dat[order(as.numeric(rownames(dat))),,drop=FALSE]
+
+n = nrow(dat)
+dat_start <- select(dat, V9)
+dat_stop <- select(dat, V10)
+
+#eliminate elements shorter than 51 elements in both START/STOP
+look.for <- 1:50
+dat_stop$noChar <- nchar(dat_stop$V10)
+dat_start$noChar <- nchar(dat_start$V9)
+rows_delete <- dat_stop[dat_stop$noChar %in% look.for, ]
+
+rows_to_delete <- (rownames(rows_delete))
+dat_stop <- dat_stop[!(row.names(dat_stop) %in% rows_to_delete),]
+dat_start <- dat_start[!(row.names(dat_start) %in% rows_to_delete),]
+
+dat_stop <- select(dat_stop, V10 )
+dat_start <- select(dat_start, V9)
+##delete column without changing format
+
+##generate matrix of sequences (Start sequences)
+new <- matrix(nrow = n, ncol = 51)
+for(i in 1:51){
+  for(j in 1:n){
+    new [j,i] <- substring(dat_start[j,], i, i)
+  }
+}
+
+new= new[,-26]
+
+
+##generate matrix of sequences (Stop sequences)
+new_stop <- matrix(nrow = n, ncol = 51)
+for(x in 1:51){
+  for(y in 1:n){
+    new_stop [y,x] <- substring(dat_stop[y,], x, x)
+  }
+}
+
+new_stop=new_stop[, -26]
+
+#four nucleotides upstream and downstream of the junction site were extracted from the Start sequence
+new_22=new[ , c(22:25)]
+new_26=new[, c(26:29)]
+
+new_22_df=as.data.frame(new_22) 
+new_22_df$full_seq= paste(new_22_df$V1, new_22_df$V2, new_22_df$V3, new_22_df$V4)
+
+new_26_df=as.data.frame(new_26) 
+new_26_df$full_seq= paste(new_26_df$V1, new_26_df$V2, new_26_df$V3, new_26_df$V4)
+
+#four nucleotides upstream and downstream of the junction site were extracted from the Stop sequence
+new_stop_22=new_stop[ , c(22:25)]
+new_stop_26=new_stop[, c(26:29)]
+
+new_stop_22_df=as.data.frame(new_stop_22) 
+new_stop_22_df$full_seq= paste(new_stop_22_df$V1, new_stop_22_df$V2, new_stop_22_df$V3, new_stop_22_df$V4)
+
+new_stop_26_df=as.data.frame(new_stop_26) 
+new_stop_26_df$full_seq= paste(new_stop_26_df$V1, new_stop_26_df$V2, new_stop_26_df$V3, new_stop_26_df$V4)
+
+#the four nucleotides upstream of the junction were compared between the start and stop site
+comparison_df_22 = ifelse(new_22_df==new_stop_22_df, TRUE, FALSE)
+comparison_df_22 = as.data.frame(comparison_df_22)
+comparison_df_22$t2226 = NA
+comparison_df_22$t2226 [comparison_df_22$full_seq== TRUE] <- "Match"
+
+#the four nucleotides upstream of the junction that are identical for the start and stop site were quantified
+count_22 = colSums(comparison_df_22 == TRUE, na.rm = TRUE)
+count_22
+
+#the four nucleotides downstream of the junction were compared between the start and stop site
+comparison_df_26 = ifelse(new_26_df==new_stop_26_df, TRUE, FALSE)
+comparison_df_26 = as.data.frame(comparison_df_26)
+comparison_df_26$t2226 <- NA
+comparison_df_26$t2226 [comparison_df_26$full_seq== TRUE] <- "Match"
+
+#the four nucleotides downstream of the junction that are identical for the start and stop site were quantified
+count_26 = colSums(comparison_df_26 == TRUE, na.rm = TRUE)
+count_26
+
+#the four nucleotides upstream and downstream of the junction were compared between the start and stop site
+comparison_22_26 = ifelse(comparison_df_22==comparison_df_26, TRUE, FALSE)
+comparison_22_26
+
+#the four nucleotides upstream and downstream of the junction that are identical for the start and stop site were quantified
+count_22_26= colSums(comparison_22_26 == TRUE, na.rm = TRUE)
+count_22_26
+
+#three nucleotides upstream and downstream of the junction site were extracted from the Start sequence
+new_23=new[ , c(23:25)]
+new_28=new[, c(26:28)]
+
+new_23_df=as.data.frame(new_23) 
+new_23_df$full_seq= paste(new_23_df$V1, new_23_df$V2, new_23_df$V3, new_23_df$V4)
+
+new_28_df=as.data.frame(new_28) 
+new_28_df$full_seq= paste(new_28_df$V1, new_28_df$V2, new_28_df$V3, new_28_df$V4)
+
+#three nucleotides upstream and downstream of the junction site were extracted from the Stop sequence
+new_stop_23=new_stop[ , c(23:25)]
+new_stop_28=new_stop[, c(26:28)]
+
+new_stop_23_df=as.data.frame(new_stop_23) 
+new_stop_23_df$full_seq= paste(new_stop_23_df$V1, new_stop_23_df$V2, new_stop_23_df$V3, new_stop_23_df$V4)
+
+new_stop_28_df=as.data.frame(new_stop_28) 
+new_stop_28_df$full_seq= paste(new_stop_28_df$V1, new_stop_28_df$V2, new_stop_28_df$V3, new_stop_28_df$V4)
+
+#the three nucleotides upstream of the junction were compared between the start and stop site
+comparison_df_23 = ifelse(new_23_df==new_stop_23_df, TRUE, FALSE)
+comparison_df_23 = as.data.frame(comparison_df_23)
+comparison_df_23$t2328 = NA
+comparison_df_23$t2328 [comparison_df_23$full_seq== TRUE] <- "Match"
+
+#the three nucleotides upstream of the junction that are identical for the start and stop site were quantified
+count_23 = colSums(comparison_df_23 == TRUE, na.rm = TRUE)
+count_23
+
+#the three nucleotides downstream of the junction were compared between the start and stop site
+comparison_df_28 = ifelse(new_28_df==new_stop_28_df, TRUE, FALSE)
+comparison_df_28 = as.data.frame(comparison_df_28)
+comparison_df_28$t2328 <- NA
+comparison_df_28$t2328 [comparison_df_28$full_seq== TRUE] <- "Match"
+
+#the three nucleotides downstream of the junction that are identical for the start and stop site were quantified
+count_28 = colSums(comparison_df_28 == TRUE, na.rm = TRUE)
+count_28
+
+#the three nucleotides upstream and downstream of the junction were compared between the start and stop site
+comparison_23_28 = ifelse(comparison_df_23==comparison_df_28, TRUE, FALSE)
+comparison_23_28
+
+#the three nucleotides upstream and downstream of the junction that are identical for the start and stop site were quantified
+count_23_28= colSums(comparison_23_28 == TRUE, na.rm = TRUE)
+count_23_28
+
+#two nucleotides upstream and downstream of the junction site were extracted from the Start sequence
+new_24=new[ , c(24:25)]
+new_27=new[, c(26:27)]
+
+new_24_df=as.data.frame(new_24) 
+new_24_df$full_seq= paste(new_24_df$V1, new_24_df$V2, new_24_df$V3, new_24_df$V4)
+
+new_27_df=as.data.frame(new_27) 
+new_27_df$full_seq= paste(new_27_df$V1, new_27_df$V2, new_27_df$V3, new_27_df$V4)
+
+#two nucleotides upstream and downstream of the junction site were extracted from the Stop sequence
+new_stop_24=new_stop[ , c(24:25)]
+new_stop_27=new_stop[, c(26:27)]
+
+new_stop_24_df=as.data.frame(new_stop_24) 
+new_stop_24_df$full_seq= paste(new_stop_24_df$V1, new_stop_24_df$V2, new_stop_24_df$V3, new_stop_24_df$V4)
+
+new_stop_27_df=as.data.frame(new_stop_27) 
+new_stop_27_df$full_seq= paste(new_stop_27_df$V1, new_stop_27_df$V2, new_stop_27_df$V3, new_stop_27_df$V4)
+
+#the two nucleotides upstream of the junction were compared between the start and stop site
+comparison_df_24 = ifelse(new_24_df==new_stop_24_df, TRUE, FALSE)
+comparison_df_24 = as.data.frame(comparison_df_24)
+comparison_df_24$t2427 = NA
+comparison_df_24$t2427 [comparison_df_24$full_seq== TRUE] <- "Match"
+
+#the two nucleotides upstream of the junction that are identical for the start and stop site were quantified
+count_24 = colSums(comparison_df_24 == TRUE, na.rm = TRUE)
+count_24
+
+#the two nucleotides downstream of the junction were compared between the start and stop site
+comparison_df_27 = ifelse(new_27_df==new_stop_27_df, TRUE, FALSE)
+comparison_df_27 = as.data.frame(comparison_df_27)
+comparison_df_27$t2427 <- NA
+comparison_df_27$t2427 [comparison_df_27$full_seq== TRUE] <- "Match"
+
+#the two nucleotides downstream of the junction that are identical for the start and stop site were quantified
+count_27 = colSums(comparison_df_27 == TRUE, na.rm = TRUE)
+count_27
+
+#the two nucleotides upstream and downstream of the junction were compared between the start and stop site
+comparison_24_27 = ifelse(comparison_df_24==comparison_df_27, TRUE, FALSE)
+comparison_24_27
+
+#the two nucleotides upstream and downstream of the junction that are identical for the start and stop site were quantified
+count_24_27= colSums(comparison_24_27 == TRUE, na.rm = TRUE)
+count_24_27
