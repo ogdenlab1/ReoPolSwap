@@ -1,0 +1,325 @@
+library(dplyr)
+library(purrr)
+library(Biostrings)
+library (stringr)
+library (data.table)
+
+##Load in data from all replicates from a given virus
+
+dat1 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\BED files into text files\\T1l_WT1_ViReMa_ed0.31_Virus_Recombination_Results.txt", sep = "\t", header = FALSE, skip = 1)
+dat2 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\BED files into text files\\T1l_WT2_ViReMa_ed0.31_Virus_Recombination_Results.txt", sep = "\t", header = FALSE, skip = 1)
+dat3 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\BED files into text files\\T1l_WT3_ViReMa_ed0.31_Virus_Recombination_Results.txt", sep = "\t", header = FALSE, skip = 1)
+
+dat1 <- dat1[,c(1,2,3,6,9,10)]
+dat2 <- dat2[,c(1,2,3,6,9,10)]
+dat3 <- dat3[,c(1,2,3,6,9,10)]
+
+#Separate by segment
+dat1 <- dat1[dat1$V1 == 'L1T1L',]
+dat2 <- dat2[dat2$V1 == 'L1T1L',]
+dat3 <- dat3[dat3$V1 == 'L1T1L',]
+
+#For positive sequences-----------------------------------
+dat <- rbind(dat1, dat2, dat3)
+dat <- unique(dat)
+dat <- dat[dat$V6 == '+',]
+
+n = nrow(dat)
+dat_start <- select(dat, V9)
+dat_stop <- select(dat, V10)
+
+#eliminate elements shorter than 51 elements in both START/STOP
+look.for <- 1:50
+dat_stop$noChar <- nchar(dat_stop$V10)
+dat_start$noChar <- nchar(dat_start$V9)
+rows_delete <- dat_stop[dat_stop$noChar %in% look.for, ]
+
+rows_to_delete <- (rownames(rows_delete))
+dat_stop <- dat_stop[!(row.names(dat_stop) %in% rows_to_delete),]
+dat_start <- dat_start[!(row.names(dat_start) %in% rows_to_delete),]
+
+dat_stop <- select(dat_stop, V10 )
+dat_start <- select(dat_start, V9)
+##delete column without changing format
+
+##generate matrix of sequences (Start sequences)
+new <- matrix(nrow = n, ncol = 51)
+for(i in 1:51){
+  for(j in 1:n){
+    new [j,i] <- substring(dat_start[j,], i, i)
+  }
+}
+
+new= new[,-26]
+
+
+##generate matrix of sequences (Stop sequences)
+new_stop <- matrix(nrow = n, ncol = 51)
+for(x in 1:51){
+  for(y in 1:n){
+    new_stop [y,x] <- substring(dat_stop[y,], x, x)
+  }
+}
+
+new_stop=new_stop[, -26]
+
+
+
+#two nucleotides upstream and downstream of the junction site were extracted from the Start sequence
+new_24=new[ , c(24:25)]
+new_27=new[, c(26:27)]
+
+new_24_df=as.data.frame(new_24) 
+new_24_df$full_seq= paste(new_24_df$V1, new_24_df$V2, new_24_df$V3, new_24_df$V4)
+
+new_27_df=as.data.frame(new_27) 
+new_27_df$full_seq= paste(new_27_df$V1, new_27_df$V2, new_27_df$V3, new_27_df$V4)
+
+#two nucleotides upstream and downstream of the junction site were extracted from the Stop sequence
+new_stop_24=new_stop[ , c(24:25)]
+new_stop_27=new_stop[, c(26:27)]
+
+new_stop_24_df=as.data.frame(new_stop_24) 
+new_stop_24_df$full_seq= paste(new_stop_24_df$V1, new_stop_24_df$V2, new_stop_24_df$V3, new_stop_24_df$V4)
+
+new_stop_27_df=as.data.frame(new_stop_27) 
+new_stop_27_df$full_seq= paste(new_stop_27_df$V1, new_stop_27_df$V2, new_stop_27_df$V3, new_stop_27_df$V4)
+
+#the two nucleotides upstream of the junction were compared between the start and stop site
+comparison_df_24 = ifelse(new_24_df==new_stop_24_df, TRUE, FALSE)
+comparison_df_24 = as.data.frame(comparison_df_24)
+comparison_df_24$t2427 = NA
+comparison_df_24$t2427 [comparison_df_24$full_seq== TRUE] <- "Match"
+
+#the two nucleotides downstream of the junction were compared between the start and stop site
+comparison_df_27 = ifelse(new_27_df==new_stop_27_df, TRUE, FALSE)
+comparison_df_27 = as.data.frame(comparison_df_27)
+comparison_df_27$t2427 <- NA
+comparison_df_27$t2427 [comparison_df_27$full_seq== TRUE] <- "Match"
+
+#the two nucleotides upstream and downstream of the junction were compared between the start and stop site
+comparison_24_27 = ifelse(comparison_df_24==comparison_df_27, TRUE, FALSE)
+comparison_24_27
+
+#For negative sense sequences  -----------------------------------------------------
+
+datn <- rbind(dat1, dat2, dat3)
+datn <- unique(datn)
+datn <- datn[datn$V6 == '-',]
+
+n = nrow(datn)
+datn_start <- select(datn, V9)
+datn_stop <- select(datn, V10)
+
+#eliminate elements shorter than 51 elements in both START/STOP
+look.for <- 1:50
+datn_stop$noChar <- nchar(datn_stop$V10)
+datn_start$noChar <- nchar(datn_start$V9)
+rows_delete <- datn_stop[datn_stop$noChar %in% look.for, ]
+
+rows_to_delete <- (rownames(rows_delete))
+datn_stop <- datn_stop[!(row.names(datn_stop) %in% rows_to_delete),]
+datn_start <- datn_start[!(row.names(datn_start) %in% rows_to_delete),]
+
+datn_stop <- select(datn_stop, V10 )
+datn_start <- select(datn_start, V9)
+##delete column without changing format
+
+##generate matrix of sequences (Start sequences)
+newn <- matrix(nrow = n, ncol = 51)
+for(i in 1:51){
+  for(j in 1:n){
+    newn [j,i] <- substring(datn_start[j,], i, i)
+  }
+}
+
+newn= newn[,-26]
+
+
+##generate matrix of sequences (Stop sequences)
+newn_stop <- matrix(nrow = n, ncol = 51)
+for(x in 1:51){
+  for(y in 1:n){
+    newn_stop [y,x] <- substring(datn_stop[y,], x, x)
+  }
+}
+
+newn_stop=newn_stop[, -26]
+
+
+#two nucleotides upstream and downstream of the junction site were extracted from the Start sequence
+newn_24=newn[ , c(24:25)]
+newn_27=newn[, c(26:27)]
+
+newn_24_df=as.data.frame(newn_24) 
+newn_24_df$full_seq= paste(newn_24_df$V1, newn_24_df$V2, newn_24_df$V3, newn_24_df$V4)
+
+newn_27_df=as.data.frame(newn_27) 
+newn_27_df$full_seq= paste(newn_27_df$V1, newn_27_df$V2, newn_27_df$V3, newn_27_df$V4)
+
+#two nucleotides upstream and downstream of the junction site were extracted from the Stop sequence
+newn_stop_24=newn_stop[ , c(24:25)]
+newn_stop_27=newn_stop[, c(26:27)]
+
+newn_stop_24_df=as.data.frame(newn_stop_24) 
+newn_stop_24_df$full_seq= paste(newn_stop_24_df$V1, newn_stop_24_df$V2, newn_stop_24_df$V3, newn_stop_24_df$V4)
+
+newn_stop_27_df=as.data.frame(newn_stop_27) 
+newn_stop_27_df$full_seq= paste(newn_stop_27_df$V1, newn_stop_27_df$V2, newn_stop_27_df$V3, newn_stop_27_df$V4)
+
+#the two nucleotides upstream of the junction were compared between the start and stop site
+comparison_df_24n = ifelse(newn_24_df==newn_stop_24_df, TRUE, FALSE)
+comparison_df_24n = as.data.frame(comparison_df_24n)
+comparison_df_24n$t2427 = NA
+comparison_df_24n$t2427 [comparison_df_24n$full_seq== TRUE] <- "Match"
+
+#the two nucleotides downstream of the junction were compared between the start and stop site
+comparison_df_27n = ifelse(newn_27_df==newn_stop_27_df, TRUE, FALSE)
+comparison_df_27n = as.data.frame(comparison_df_27n)
+comparison_df_27n$t2427 <- NA
+comparison_df_27n$t2427 [comparison_df_27n$full_seq== TRUE] <- "Match"
+
+#the two nucleotides upstream and downstream of the junction were compared between the start and stop site
+comparison_24_27n = ifelse(comparison_df_24n==comparison_df_27n, TRUE, FALSE)
+comparison_24_27n
+
+
+#Load or copy/paste the sequence for the desired segment to be analyzed
+data <- 'GCTACACGTTCCACGACAATGTCATCCATGATACTGACTCAGTTTAGACCGTTCATTGAAAGCATTTCAGGTATCACTGACCAATCGAATGACGTGTTTGAAGATGCAGCAAAAGCATTCTCTATGTTTACTCGCAGCGACGTCTACAAGGCGCTGGATGAAATACCTTTCTCTGATGATGCGATGCTTCCCATCCCTCCAACTATATATACTAAACCATCTCACGATTCATATTATTACATTGATGCTCTAAACCGTGTGCGTCGCAAAACATATCAGGGCCCTGATGACGTGTACGTACCTAATTGTTCTATTGTTGAATTGCTGGAGCCACATGAGACTCTGACATCTTATGGGCGTTTGTCTGAGGCCATCGAGAATCGTGCCAAGGATGGAGACAGCCAAGCCAGAATCGCAACGACGTATGGTAGAATCGCTGAATCTCAAGCTCGACAGATTAAGGCTCCATTGGAGAAGTTTGTGTTGGCACTACTAGTGTCCGAAGCGGGGGGGTCTTTATATGATCCAGTTCTGCAGAAGTATGATGAGATTCCAGATCTATCGCATAATTGCCCTTTATGGTGTTTTAGAGAAATCTGTCGTCATATATCTGGTCCATTACCAGACCGAGCACCTTATCTTTACTTATCTGCAGGGGTTTTCTGGTTAATGTCACCACGAATGACGTCTGCAATCCCTCCGTTACTATCCGATCTTGTTAATTTAGCTATTTTACAACAGACTGCGGGTTTGGATCCATCATTAGTGAAATTGGGAGTGCAGATATGCCTTCATGCGGCAGCTAGCTCAAGTTATGCATGGTTTATCTTAAAGACTAAGTCTATTTTTCCTCAAAACACGTTACATAGTATGTATGAATCTCTAGAAGGGGGgTATTGTCCTAACCTTGAATGGTTAGAGCCTAGATCGGACTATAAATTCATGTACATGGGAGTCATGCCATTGTCCACTAAGTATGCTAGGTCGGCGCCGTCAAATGATAAGAAAGCGCGGGAACTTGGCGAGAAATATGGACTGAGCTCAGTCGTCAGTGAGCTTCGTAAACGGACAAAGACTTATGTTAAACATGACTTTGCTTCGGTAAGGTACATTCGTGACGCTATGGCATGTACTAGCGGTATTTTCTTGGTAAGAACACCCACCGAAACGGTATTGCAAGAATATACTCAGAGTCCGGAGATTAAGGTTCCCATCCCCCAAAAAGATTGGACAGGCCCAGTAGGTGAGATCAGAATTCTAAAAGACACAACAAGCTCCATCGCGCGCTACTTATATAGAACATGGTACTTAGCAGCGGCAAGAATGGCGGCTCAACCACGTACGTGGGATCCATTGTTTCAGGCGATTATGAGATCTCAATACGTGACAGCTAGGGGTGGATCTGGCGCAGCaCTCCGCGAGTCTCTGTACGCAATTAATGTGTCGTTACCTGATTTTAAGGGCTTACCAGTGAAGGCAGCAACTAAGATATTTCAGGCGGCACAATTAGCGAACTTGCCGTTCTCCCACACATCAGTGGCTATACTAGCTGACACTTCGATGGGATTGCGAAACCAGGTGCAGAGGCGGCCACGATCCATTATGCCCTTAAATGTGCCCCAACAGCAGGTTTCGGCGCCTCATACATTGACCGCGGATTACATCAATTACCACATGAAcCTATCAACCACGTCTGGTAGCGCGGTCATTGAGAAAGTGATTCCCTTAGGTGTATACGCTTCGAGCCCTCCTAACCAATCGATTAACATTGACATATCTGCATGTGACGCAAGTATTACTTGGGATTTCTTTCTATCCGTGATTATGGCGGCTATACACGAAGGTGTCGCTAGTaGCTCCATTGGAAAACCGTTTATGGGGGTTCCTGCATCCATTGTAAATGATGAGTCTGTCGTTGGAGTGAGAGCTGCTAGGCCGATATCGGGAATGCAGAACATGATTCAGCATCTATCAAAACTGTATAAACGTGGATTTTCATACAGAGTGAACGACTCTTTTTCTCCAGGTAACGACTTTACcCATATGACTACCACTTTCCCGTCAGGTTCAACAGCCACCTCTACTGAGCATACTGCTAATAATAGTACGATGATGGAAACTTTCCTGACAGTATGGGGACCCGAACATACTGACGACCCCGACGTCTTACGTCTAATGAAGTCTTTAACTATTCAAAGGAATTACGTGTGTCAAGGTGATGATGGATTGATGATTATCGATGGGAATACTGCTGGTAAGGTGAACAGTGAAACTATTCAGAAGATGCTGGAGTTAATCTCAAAATATGGTGAGGAATTTGGATGGAAATATGACATAGCGTACGATGGGACTGCCGAATACCTAAAGCTGTATTTCATATTTGGCTGTCGAATTCCAAATCTTAGTCGTCATCCAATCGTGGGGAAAGAACGGGCGAATTCTTCAGCAGAGGAGCCATGGCCAGCAATTCTAGACCAGATTATGGGTATCTTCTTTAATGGCGTTCATGACGGGTTACAGTGGCAGCGGTGGATACGTTATTCATGGGCTCTATGCTGTGCTTTCTCACGTCAAAGAACAATGATTGGTGAGAGCGTAGGTTACCTTCAATATCCTATGTGGTCTTTTGTCTACTGGGGATTACCACTGGTTAAAGTGTTCGGGTCAGACCCATGGATATTTTCTTGGTACATGCCTACTGGGGACCTGGGAATGTATAGTTGGATTAGCCTGATACGCCCTCTAATGACAAGATGGATGGTGGCTAATGGTTACGCAACTGACAGATGCTCACCCGTATTCGGGAACGCAGATTATCGCAGGTGTTTCAATGAAATTAAACTATATCAAGGGTATTATATGGCACAATTGCCTAGGAATCCTACGAAATCTGGACGAGCGGCCCCTCGGGAGGTAAGAGAACAATTCACTCAGGCATTATCCGATTATCTGATGCAAAATCCAGAGCTGAAGTCACGTGTGCTACGTGGTCGTAGTGAGTGGGAGAAGTATGGAGCGGGGATAATTCACAATCCTCCATCATTATTCGATGTGCCCCATAAGTGGTATCTGGGTGCGCAAGAGGCGGCAACCGCTACGAGAGAAGAGCTGGCAGAAATGGATGAGACATTAATGCGCGCTCGAAGGCACAGTTATTCAAGCTTTTCAAAGTTGTTGGAGGCATACCTGCTCGTGAAATGGCGAATGTGCGAGGCCCGCGAACCGTCGGTTGATTTGCGATTACCATTATGTGCGGGTATTGACCCACTAAACTCAGATCCTTTTCTCAAGATGGTAAGCGTTGGGCCAATGCTCCAGAGTACGAGAAAGTACTTTGCTCAGACACTATTCATGGCAAAGACGGTGTCGGGTCTCGACGTTAACGCGATTGACAGCGCGTTATTACGACTGCGAACATTGGGTGCTGATAAGAAAGCATTAACAGCGCAGTTATTAATGGTGGGGCTTCAGGAGTCAGAAGCTGACGCGTTGGCTGGGAAGATAATGCTACAAGATGTAAGTACTGTGCAATTAGCCAGAGTGGTCAACTTAGCTGTGCCAGATACTTGGATGTCGTTGGACTTTGACTCTATGTTCAAACACCATGTTAAGTTGCTTCCCAAAGATGGACGTCATCTAAATACTGATATTCCTCCTCGAATGGGATGGTTACGGGCCATTTTACGATTCTTAGGTGCTGGAATGGTAATGACTGCGACTGGAGTTGCTGTCGACATATATCTGGAGGATATACACGGCGGTGGTCGaGCACTTGGACAGAGATTCATGACTTGGATGCGACAGGAAGGACGGTCAGCGTGAGTCTACCATGGGTCGTGGTGCGTCAACTCATC'
+dna <- DNAString(data)
+
+#extract short sequences that have microhomology surrounding the junction negative sense
+newn_2427=newn[ , c(24, 25, 26, 27)]
+newn_2427=as.data.frame(newn_2427) 
+newn_2427$full_seq= str_c(newn_2427$V1, newn_2427$V2, newn_2427$V3, newn_2427$V4)
+
+comparison_24_27n=as.data.frame(comparison_24_27n) 
+
+ShortSeqsneg <- cbind(newn_2427, full_seq_TF = comparison_24_27n$t2427)
+ShortSeqsneg <- na.omit(ShortSeqsneg)
+#convert sequences to their reverse complement
+ShortSeqsneg$full_seq <- sapply(ShortSeqsneg$full_seq, function(x) DNAString(x))
+ShortSeqsneg$full_seq <- sapply(ShortSeqsneg$full_seq, function(x) reverseComplement(x))
+
+#extract short sequences that have microhomology surrounding the junction positive sense
+new_2427=new[ , c(24, 25, 26, 27)]
+new_2427=as.data.frame(new_2427) 
+new_2427$full_seq= str_c(new_2427$V1, new_2427$V2, new_2427$V3, new_2427$V4)
+
+comparison_24_27=as.data.frame(comparison_24_27) 
+
+ShortSeqs <- cbind(new_2427, full_seq_TF = comparison_24_27$t2427)
+ShortSeqs <- na.omit(ShortSeqs)
+
+#combined negative and positive data and count number of times it appears in the reference sequence to obtain the frequency of microhomology
+ShortSeqsall <- rbind(ShortSeqs, ShortSeqsneg)
+
+ShortSeqsall$counts <- sapply(ShortSeqsall$full_seq, function(x) countPattern(x, dna))
+
+
+ShortSeqsall$full_seq <-sapply(ShortSeqsall$full_seq, function(x)  as.character(x))
+ShortSeqsall <- ShortSeqsall[,c(5,7)]
+ShortSeqsall <- unique(ShortSeqsall)
+
+write.table(ShortSeqsall, file = "R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T1L_L1_Microhomology_counts.txt", sep = "\t", row.names = FALSE)
+#Numbers can be used to generate the frequency of microhomology graph in GraphPad Prism
+
+-------- Usage of microhomology sites for recombination--------------------
+#match microhomology regions to DNA sequence
+ShortSeqsneg$full_seq <-sapply(ShortSeqsneg$full_seq, function(x)  as.character(x))
+positions_all_neg <- sapply(ShortSeqsneg$full_seq, function(x) matchPattern(x, dna))
+positions_all_pos <- sapply(ShortSeqs$full_seq, function(x) matchPattern(x, dna))
+
+#Obtain all the start numbers and compare them
+positions_Start_all_pos <- sapply(positions_all_pos, function(x) start(x))
+positions_Start_all_neg <- sapply(positions_all_neg, function(x) start(x))
+
+#extract positions and associated motifs positive sense
+dt_list_start_pos <- map(positions_Start_all_pos, as.data.table)
+dt_start_pos <- rbindlist(dt_list_start_pos, fill = TRUE, idcol = T)
+dt_start_pos <- unique(dt_start_pos)
+
+#add a +1 to pin point the actual start location within the junction
+dt_start_pos$V1<- dt_start_pos[,2] + 1
+
+#extract positions and associated motifs negative sense
+dt_list_start_neg <- map(positions_Start_all_neg, as.data.table)
+dt_start_neg <- rbindlist(dt_list_start_neg, fill = TRUE, idcol = T)
+dt_start_neg <- unique(dt_start_neg)
+
+#add a +1 to pin point the actual start location within the junction
+dt_start_neg$V1<- dt_start_neg[,2] + 2
+
+
+#analyze how many times a motif is associated with a junction site positive strand
+start_counts_pos= setDT(dat)[, .(position = V2)][dt_start_pos, .(n = .N), 
+     on = .(position = V1), by = .EACHI]
+
+start_counts_pos= cbind(dt_start_pos, start_counts_pos)
+start_counts_pos= start_counts_pos <- start_counts_pos[,-2]  
+start_counts_pos= unique(start_counts_pos)
+
+#analyze how many times a motif is associated with a junction site negative strand
+start_counts_neg= setDT(datn)[, .(position = V2)][dt_start_neg, .(n = .N), 
+     on = .(position = V1), by = .EACHI]
+start_counts_neg= cbind(dt_start_neg, start_counts_neg)
+
+start_counts_neg= start_counts_neg <- start_counts_neg[,-2]  
+start_counts_neg$position<- start_counts_neg[,2] - 1
+start_counts_neg= unique(start_counts_neg)
+#join data sets together for positive and negative strand
+
+start_counts <- full_join(start_counts_neg, start_counts_pos, by= c(".id", "position"))
+start_counts[is.na(start_counts)] <- 0
+start_counts$counts <- start_counts$n.x + start_counts$n.y 
+
+write.table(start_counts, file = "R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T1L_L1_recombination_motif_startcounts.txt", sep = "\t", row.names = FALSE)
+
+
+#Obtain all the start numbers and compare them
+
+positions_Stop_all_pos <- sapply(positions_all_pos, function(x) end(x))
+positions_Stop_all_neg <- sapply(positions_all_neg, function(x) end(x))
+
+
+#extract positions and associated motifs positive sense
+dt_list_stop_pos <- map(positions_Stop_all_pos, as.data.table)
+dt_stop_pos <- rbindlist(dt_list_stop_pos, fill = TRUE, idcol = T)
+
+#substract a -1 to pin point the actual start location within the junction
+dt_stop_pos <- unique(dt_stop_pos)
+dt_stop_pos$V1<- dt_stop_pos[,2] - 1
+
+#extract positions and associated motifs negative sense
+dt_list_stop_neg <- map(positions_Stop_all_neg, as.data.table)
+dt_stop_neg <- rbindlist(dt_list_stop_neg, fill = TRUE, idcol = T)
+dt_stop_neg <- unique(dt_stop_neg)
+#substract -1 to pin point the actual start location within the junction
+dt_stop_neg$V1<- dt_stop_neg[,2] - 2
+
+#analyze how many times a motif is associated with a junction site positive strand
+stop_counts_pos= setDT(dat)[, .(position = V3)][dt_stop_pos, .(n = .N), 
+     on = .(position = V1), by = .EACHI]
+
+stop_counts_pos= cbind(dt_stop_pos, stop_counts_pos)
+stop_counts_pos= stop_counts_pos <- stop_counts_pos[,-2]  
+stop_counts_pos= unique(stop_counts_pos)
+
+#analyze how many times a motif is associated with a junction site positive strand
+stop_counts_neg= setDT(datn)[, .(position = V3)][dt_stop_neg, .(n = .N), 
+     on = .(position = V1), by = .EACHI]
+stop_counts_neg= cbind(dt_stop_neg, stop_counts_neg)
+
+stop_counts_neg= stop_counts_neg <- stop_counts_neg[,-2]  
+stop_counts_neg$position<- stop_counts_neg[,2] + 1
+stop_counts_neg= unique(stop_counts_neg)
+#join data sets together for positive and negative strand
+
+stop_counts <- full_join(stop_counts_neg, stop_counts_pos, by= c(".id", "position"))
+stop_counts[is.na(stop_counts)] <- 0
+stop_counts$counts <- stop_counts$n.x + stop_counts$n.y 
+
+write.table(stop_counts, file = "R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Processed recombination data\\T1L_L1_recombination_motif_stopcounts.txt", sep = "\t", row.names = FALSE)
+
+
+#Values can be uploaded into GraphPad Prism to create appropriate graph
