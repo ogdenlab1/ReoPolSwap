@@ -1,0 +1,203 @@
+library(dplyr)
+library(purrr)
+library(Biostrings)
+library (stringr)
+library (data.table)
+library(ggseqlogo)
+library(ggplot2)
+
+##Load in data from all replicates from a given virus
+
+
+dat1 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\BED files into text files\\T1l_WT1_ViReMa_ed0.31_Virus_Recombination_Results.txt", sep = "\t", header = FALSE, skip = 1)
+dat2 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\BED files into text files\\T1l_WT2_ViReMa_ed0.31_Virus_Recombination_Results.txt", sep = "\t", header = FALSE, skip = 1)
+dat3 <- read.table("R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\BED files into text files\\T1l_WT3_ViReMa_ed0.31_Virus_Recombination_Results.txt", sep = "\t", header = FALSE, skip = 1)
+
+dat1 <- dat1[,c(1,2,3,6,9,10)]
+dat2 <- dat2[,c(1,2,3,6,9,10)]
+dat3 <- dat3[,c(1,2,3,6,9,10)]
+
+dat1 <- dat1[dat1$V1 == 'L1T1L',]
+dat2 <- dat2[dat2$V1 == 'L1T1L',]
+dat3 <- dat3[dat3$V1 == 'L1T1L',]
+
+#combine replicates, select for only unique junctions, and separate by positive strand
+dat <- rbind(dat1, dat2, dat3)
+dat <- unique(dat)
+dat <- dat[dat$V6 == '+',]
+
+n = nrow(dat)
+dat_start <- select(dat, V9)
+dat_stop <- select(dat, V10)
+
+#eliminate elements shorter than 51 elements in both START/STOP
+look.for <- 1:50
+dat_stop$noChar <- nchar(dat_stop$V10)
+dat_start$noChar <- nchar(dat_start$V9)
+rows_delete <- dat_stop[dat_stop$noChar %in% look.for, ]
+
+rows_to_delete <- (rownames(rows_delete))
+dat_stop <- dat_stop[!(row.names(dat_stop) %in% rows_to_delete),]
+dat_start <- dat_start[!(row.names(dat_start) %in% rows_to_delete),]
+
+dat_stop <- select(dat_stop, V10 )
+dat_start <- select(dat_start, V9)
+
+##generate matrix of sequences (Start sequences)
+new <- matrix(nrow = n, ncol = 51)
+for(i in 1:51){
+  for(j in 1:n){
+    new [j,i] <- substring(dat_start[j,], i, i)
+  }
+}
+
+new= new[,-26]
+
+
+##generate matrix of sequences (Stop sequences)
+new_stop <- matrix(nrow = n, ncol = 51)
+for(x in 1:51){
+  for(y in 1:n){
+    new_stop [y,x] <- substring(dat_stop[y,], x, x)
+  }
+}
+
+new_stop=new_stop[, -26]
+
+#Maintain only -10 to +10 position within the junction
+new= new[,c(16:35)]
+new_stop= new_stop[,c(16:35)]
+#For negative sense sequences  -----------------------------------------------------
+#combine replicates, select for only unique junctions, and separate by negative strand
+datn <- rbind(dat1, dat2, dat3)
+datn <- unique(datn)
+datn <- datn[datn$V6 == '-',]
+
+n = nrow(datn)
+datn_start <- select(datn, V9)
+datn_stop <- select(datn, V10)
+
+#eliminate elements shorter than 51 elements in both START/STOP
+look.for <- 1:50
+datn_stop$noChar <- nchar(datn_stop$V10)
+datn_start$noChar <- nchar(datn_start$V9)
+rows_delete <- datn_stop[datn_stop$noChar %in% look.for, ]
+
+rows_to_delete <- (rownames(rows_delete))
+datn_stop <- datn_stop[!(row.names(datn_stop) %in% rows_to_delete),]
+datn_start <- datn_start[!(row.names(datn_start) %in% rows_to_delete),]
+
+datn_stop <- select(datn_stop, V10 )
+datn_start <- select(datn_start, V9)
+##delete column without changing format
+
+##generate matrix of sequences (Start sequences)
+newn <- matrix(nrow = n, ncol = 51)
+for(i in 1:51){
+  for(j in 1:n){
+    newn [j,i] <- substring(datn_start[j,], i, i)
+  }
+}
+
+newn= newn[,-26]
+
+
+##generate matrix of sequences (Stop sequences)
+newn_stop <- matrix(nrow = n, ncol = 51)
+for(x in 1:51){
+  for(y in 1:n){
+    newn_stop [y,x] <- substring(datn_stop[y,], x, x)
+  }
+}
+
+newn_stop=newn_stop[, -26]
+
+#Generate the reverse complement for negative-sense start sequences
+
+newn_full=as.data.frame(newn) 
+newn_full$full_seq= str_c(newn_full$V16, newn_full$V17, newn_full$V18, newn_full$V19, newn_full$V20, newn_full$V20, newn_full$V21, newn_full$V22, newn_full$V23, newn_full$V24, newn_full$V25, newn_full$V26, newn_full$V27, newn_full$V28, newn_full$V29, newn_full$V30, newn_full$V32, newn_full$V33, newn_full$V34, newn_full$V35)
+newn_full <- na.omit(newn_full)
+
+newn_full$full_seq <- sapply(newn_full$full_seq, function(x) DNAString(x))
+newn_full$full_seq <- sapply(newn_full$full_seq, function(x) reverseComplement(x))
+newn_full$full_seq <- sapply(newn_full$full_seq, function(x)  as.character(x))
+
+newn_full <- newn_full[,c(51)]
+newn_full=as.data.frame(newn_full) 
+
+#Generate matrix of sequences (Start sequences) that are reverse complement
+n = nrow(newn_full)
+revstart <- matrix(nrow = n, ncol = 20)
+for(i in 1:20){
+  for(j in 1:n){
+    revstart [j,i] <- substring(newn_full[j,], i, i)
+  }
+}
+
+#Combine negative and positive data for start sequence
+all_start <- rbind(revstart, new)
+
+all_start <- as.data.frame(all_start) 
+all_start$full_seq= str_c(all_start$V1, all_start$V2, all_start$V3, all_start$V4, all_start$V5, all_start$V6, all_start$V7, all_start$V8, all_start$V9, all_start$V10, all_start$V11, all_start$V12, all_start$V13, all_start$V14, all_start$V15, all_start$V16, all_start$V17, all_start$V18, all_start$V19, all_start$V20)
+                          
+all_start <- all_start[,c(21)]
+
+#Count number of ACTG nucleotides per position and divide by the total number of nucleotides found in a given position
+pmf <- consensusMatrix(all_start)
+df1 <- pmf/n
+df1 <- round(df1, digit = 4)
+
+names <- c(-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+
+#Generate logoplot for start sequences based on position frequency matrix
+ggseqlogo( df1, seq_type='dna', method = 'prob' ) +
+    scale_x_continuous(breaks = 1:20, labels = names)
+
+ggsave(filename = paste("T1L_WT_1-3_L1_start_all", ".tiff", sep=""), plot = last_plot(), device = "tiff", path = "R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Logo plots and data", scale = 1, width = 5, height = 3, units = "in", dpi = 1200, limitsize = TRUE)
+
+#-----------------------stop
+#Generate the reverse complement for negative-sense stop sequences
+
+newn_stop_full=as.data.frame(newn_stop) 
+newn_stop_full$full_seq= str_c(newn_stop_full$V16, newn_stop_full$V17, newn_stop_full$V18, newn_stop_full$V19, newn_stop_full$V20, newn_stop_full$V20, newn_stop_full$V21, newn_stop_full$V22, newn_stop_full$V23, newn_stop_full$V24, newn_stop_full$V25, newn_stop_full$V26, newn_stop_full$V27, newn_stop_full$V28, newn_stop_full$V29, newn_stop_full$V30, newn_stop_full$V32, newn_stop_full$V33, newn_stop_full$V34, newn_stop_full$V35)
+newn_stop_full <- na.omit(newn_stop_full)
+
+newn_stop_full$full_seq <- sapply(newn_stop_full$full_seq, function(x) DNAString(x))
+newn_stop_full$full_seq <- sapply(newn_stop_full$full_seq, function(x) reverseComplement(x))
+newn_stop_full$full_seq <- sapply(newn_stop_full$full_seq, function(x)  as.character(x))
+
+newn_stop_full <- newn_stop_full[,c(51)]
+newn_stop_full=as.data.frame(newn_stop_full) 
+
+##generate matrix of sequences (Stop sequences) that are reverse complement
+n = nrow(newn_stop_full)
+revstop <- matrix(nrow = n, ncol = 20)
+for(i in 1:20){
+  for(j in 1:n){
+    revstop [j,i] <- substring(newn_stop_full[j,], i, i)
+  }
+}
+
+#combine negative and positive data for stop sequence
+all_stop <- rbind(revstop, new_stop)
+
+all_stop <- as.data.frame(all_stop) 
+all_stop$full_seq= str_c(all_stop$V1, all_stop$V2, all_stop$V3, all_stop$V4, all_stop$V5, all_stop$V6, all_stop$V7, all_stop$V8, all_stop$V9, all_stop$V10, all_stop$V11, all_stop$V12, all_stop$V13, all_stop$V14, all_stop$V15, all_stop$V16, all_stop$V17, all_stop$V18, all_stop$V19, all_stop$V20)
+                          
+all_stop <- all_stop[,c(21)]
+
+#Count number of ACTG nucleotides per position and divide by the total number of nucleotides found in a given position
+pmf2 <- consensusMatrix(all_stop)
+df2 <- pmf2/n
+df2 <- round(df2, digit = 4)
+
+names <- c(-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+
+#Generate logoplot for stop sequences based on position frequency matrix
+ggseqlogo( df2, seq_type='dna', method = 'prob' ) +
+    scale_x_continuous(breaks = 1:20, labels = names)
+
+ggsave(filename = paste("T1L_WT_1-3_L1_stop_all", ".tiff", sep=""), plot = last_plot(), device = "tiff", path = "R:\\INF\\Ogden Lab\\Lab Notebooks and Data\\Alejandra Flores\\Click seq analysis data\\Logo plots and data", scale = 1, width = 5, height = 3, units = "in", dpi = 1200, limitsize = TRUE)
+
+
+
